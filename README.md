@@ -4,7 +4,7 @@ Slickplan Importer module for Drupal, imports pages from a [Slickplan.com](http:
 
 ## Installation
 
-1. Upload the files to the appropriate locations (follow the directory path in the module to find out where to put them).
+1. Download this repository and upload all files to `/sites/all/modules/slickplan_importer/` directory.
 2. Install the 'Slickplan Importer' module through the 'Modules' menu in Drupal.
 3. Click on the menu item 'Configuration' and then click 'Slickplan Importer' under 'Content Authoring' section.
 
