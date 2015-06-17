@@ -42,8 +42,8 @@ function slickplan_importer_ajax_importer_form(array $form)
 
     $form['progress'] = array(
         '#markup' => theme_progress_bar(array(
-            'percent' => 50,
-            'message' => 'ass',
+            'percent' => 0,
+            'message' => '',
         )),
     );
 
