@@ -1,6 +1,8 @@
 # [Slickplan](http://slickplan.com) Importer - Drupal 7 Module
 
-Slickplan Importer module for Drupal, imports pages from a [Slickplan.com](http://slickplan.com)’s XML export file into your Drupal 7 site.
+The Slickplan import module allows you to quickly import your [Slickplan.com](http://slickplan.com) projects into your Drupal 7 site.
+
+When you are finished planning your website project, import your [Slickplan.com](http://slickplan.com) website plan. Upon import, your pages, navigation structure, and content will be instantly ready in your CMS.
 
 ## Installation
 
