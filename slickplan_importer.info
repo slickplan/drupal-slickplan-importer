@@ -1,7 +1,7 @@
 name = "Slickplan Importer"
 description = "Import pages from a Slickplan’s XML export file."
 package = "Slickplan"
-version = "7.x-1.0.0"
+version = "7.x-1.0.1"
 configure = admin/config/content/slickplan_importer
 core = 7.x
 dependencies[] = image
