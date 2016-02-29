@@ -87,7 +87,12 @@ function slickplan_importer_ajax_importer_post()
         }
         if (isset($form['last']) and $form['last']) {
             $result['last'] = $form['last'];
+            $slickplan->checkForInternalLinks();
             variable_set('slickplan_importer', array());
+        }
+        else {
+            $xml['import_options'] = $slickplan->options;
+            variable_set('slickplan_importer', $xml);
         }
     }
     drupal_json_output($result);

@@ -72,24 +72,48 @@ function slickplan_importer_options_form(array $form)
         '#type' => 'radios',
         '#default_value' => 'contents',
         '#options' => array(
-            'contents' => 'Import page content',
-            'desc' => 'Import page notes as content',
+            'contents' => 'Import page content from Content Planner',
+            'desc' => 'Import notes as page content',
             'ucwords' => 'Don’t import any content ',
         ),
     );
-    $form['slickplan_importer_pages_settings']['slickplan_importer_content_files'] = array(
-        '#type' => 'checkbox',
-        '#title' => 'Import files to website’s library'
-            . '<div class="description">(Downloading files may take a while)</div>',
-        '#states' => array(
-            'visible' => array(
-                '#edit-slickplan-importer-content input[type="radio"]' => array(
-                    'value' => 'contents',
+
+    $no_of_files = 0;
+    $filesize_total = array();
+    if (isset($xml['pages']) and is_array($xml['pages'])) {
+        foreach ($xml['pages'] as $page) {
+            if (isset($page['contents']['body']) and is_array($page['contents']['body'])) {
+                foreach ($page['contents']['body'] as $body) {
+                    if (isset($body['content']['type']) and $body['content']['type'] === 'library') {
+                        ++$no_of_files;
+                    }
+                    if (isset($body['content']['file_size'], $body['content']['file_id']) and $body['content']['file_size']) {
+                        $filesize_total[$body['content']['file_id']] = (int)$body['content']['file_size'];
+                    }
+                }
+            }
+        }
+        $filesize_total = array_sum($filesize_total);
+        $size = array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
+        $factor = (int)floor((strlen($filesize_total) - 1) / 3);
+        $filesize_total = round($filesize_total / pow(1024, $factor)) . $size[$factor];
+    }
+    if ($no_of_files) {
+        $form['slickplan_importer_pages_settings']['slickplan_importer_content_files'] = array(
+            '#type' => 'checkbox',
+            '#title' => 'Import files to website’s library'
+                . '<div class="description">(Downloading files may take a while, approx total size: ' . $filesize_total . ')</div>',
+            '#states' => array(
+                'visible' => array(
+                    '#edit-slickplan-importer-content input[type="radio"]' => array(
+                        'value' => 'contents',
+                    ),
                 ),
             ),
-        ),
-        '#prefix' => '<br>',
-    );
+            '#prefix' => '<br>',
+        );
+    }
+
     $post_types = node_type_get_types();
     $array_post_types = array();
     foreach ($post_types as $post_type) {
@@ -190,13 +214,16 @@ function slickplan_importer_options_form_submit(array $form, array &$form_data)
             ? $form_data['values']['slickplan_importer_content']
             : '',
         'content_files' => (
-            isset($form_data['values']['slickplan_importer_content_files'])
+            isset($form_data['values']['slickplan_importer_content'], $form_data['values']['slickplan_importer_content_files'])
+            and $form_data['values']['slickplan_importer_content'] === 'contents'
             and $form_data['values']['slickplan_importer_content_files']
         ),
         'post_type' => isset($form_data['values']['slickplan_importer_post_type'])
             ? $form_data['values']['slickplan_importer_post_type']
             : '',
         'users' => array(),
+        'internal_links' => array(),
+        'imported_pages' => array(),
     );
     foreach ($xml['users'] as $user_id => $user_data) {
         if (
@@ -211,10 +238,7 @@ function slickplan_importer_options_form_submit(array $form, array &$form_data)
     $slickplan->options = $xml['import_options'];
     $slickplan->addMenu();
 
-    if (
-        isset($form_data['values']['slickplan_importer_content_files'])
-        and $form_data['values']['slickplan_importer_content_files'] === 1
-    ) {
+    if ($xml['import_options']['content_files']) {
         // Import with progress bars
         variable_set('slickplan_importer', $xml);
         drupal_goto('admin/config/content/slickplan_importer/ajax_importer');
@@ -226,6 +250,7 @@ function slickplan_importer_options_form_submit(array $form, array &$form_data)
                 $slickplan->importPages($xml['sitemap'][$type], $xml['pages']);
             }
         }
+        $slickplan->checkForInternalLinks();
         $xml['summary'] = $slickplan->summary;
         variable_set('slickplan_importer', $xml);
         drupal_goto('admin/config/content/slickplan_importer/summary');

@@ -10,11 +10,10 @@ function slickplan_importer_upload_form(array $form)
     $form['slickplan_importer'] = array(
         '#type' => 'fieldset',
         '#title' => 'Slickplan Importer',
-        '#description' => '<p>This importer allows you to import pages structure from a '
-            . '<a href="http://slickplan.com" target="_blank">Slickplan</a>&#8217;s '
-            . 'XML file into your Drupal site.</p>'
+        '#description' => '<p>The Slickplan Importer plugin allows you to quickly import your '
+            . '<a href="http://slickplan.com" target="_blank">Slickplan</a> projects into your Drupal site.</p>'
+            . '<p>Upon import, your pages, navigation structure, and content will be instantly ready in your CMS.</p>'
             . '<p>Pick a XML file to upload and click Import.</p>',
-
         'slickplan_importer_xml_file' => array(
             '#title' => 'File',
             '#type' => 'file',

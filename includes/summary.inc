@@ -13,7 +13,7 @@ function slickplan_importer_summary_form(array $form)
 
     _slickplan_check_required_data($xml, 'summary');
 
-    drupal_add_css('//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css', array(
+    drupal_add_css('//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css', array(
         'type' => 'external',
     ));
 

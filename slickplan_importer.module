@@ -12,7 +12,7 @@ function slickplan_importer_menu()
     return array(
         'admin/config/content/slickplan_importer' => array(
             'title' => 'Slickplan Importer',
-            'description' => 'Import pages from a Slickplan’s XML export file.',
+            'description' => 'Quickly import your Slickplan project into your Drupal site.',
             'access arguments' => array(
                 'administer slickplan_importer',
             ),
@@ -86,7 +86,7 @@ function slickplan_importer_permission()
     return array(
         'administer slickplan_importer' => array(
             'title' => 'Administer Slickplan Importer',
-            'description' => 'Import pages from Slickplan Importer',
+            'description' => 'Quickly import your Slickplan project into your Drupal site.',
             'restrict access' => true,
         ),
     );
@@ -126,6 +126,8 @@ class Slickplan_Importer
         'post_type' => '',
         'content_files' => false,
         'users' => array(),
+        'internal_links' => array(),
+        'imported_pages' => array(),
     );
 
     /**
@@ -141,6 +143,13 @@ class Slickplan_Importer
      * @var array
      */
     private $_files = array();
+
+    /**
+     * If page has unparsed internal pages
+     *
+     * @var bool
+     */
+    private $_has_unparsed_internal_links = false;
 
     /**
      * Parse Slickplan's XML file. Converts an XML DOMDocument to an array.
@@ -334,6 +343,16 @@ class Slickplan_Importer
             }
         }
 
+        $this->_has_unparsed_internal_links = false;
+        if (isset($node->body[$node->language][0]['value']) and $node->body[$node->language][0]['value']) {
+            $updated_content = $this->_parseInternalLinks($node->body[$node->language][0]['value']);
+            if ($updated_content) {
+                $node->body[$node->language][0]['value']
+                    = $node->body[$node->language][0]['summary']
+                    = $updated_content;
+            }
+        }
+
         $node = node_submit($node);
 
         try {
@@ -357,6 +376,15 @@ class Slickplan_Importer
                 'mlid' => $link,
                 'files' => $this->_files,
             );
+
+            // Save page permalink
+            if (isset($data['@attributes']['id']) and $data['@attributes']['id']) {
+                $this->options['imported_pages'][$data['@attributes']['id']] = $return['url'];
+            }
+
+            if ($this->_has_unparsed_internal_links) {
+                $this->options['internal_links'][] = $return['ID'];
+            }
         } catch (Exception $e) {
             $return = array(
                 'title' => $post_title,
@@ -434,6 +462,60 @@ class Slickplan_Importer
         }
         $html .= '<div>';
         return $html;
+    }
+
+    /**
+     * Check if there are any pages with unparsed internal links, if yes - replace links with real URLs
+     */
+    public function checkForInternalLinks()
+    {
+        if (isset($this->options['internal_links']) and is_array($this->options['internal_links'])) {
+            foreach ($this->options['internal_links'] as $page_id) {
+                $page = node_load($page_id);
+                if (isset($page->body[$page->language][0]['value'])) {
+                    $page_content = $this->_parseInternalLinks($page->body[$page->language][0]['value'], true);
+                    if ($page_content) {
+                        $page->body[$page->language][0]['value']
+                            = $page->body[$page->language][0]['summary']
+                            = $page_content;
+                        node_save($page);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Replace internal links with correct pages URLs.
+     *
+     * @param $content
+     * @param $force_parse
+     * @return bool
+     */
+    private function _parseInternalLinks($content, $force_parse = false)
+    {
+        preg_match_all('/href="slickplan:([a-z0-9]+)"/isU', $content, $internal_links);
+        if (isset($internal_links[1]) and is_array($internal_links[1]) and count($internal_links[1])) {
+            $internal_links = array_unique($internal_links[1]);
+            $links_replace = array();
+            foreach ($internal_links as $cell_id) {
+                if (
+                    isset($this->options['imported_pages'][$cell_id])
+                    and $this->options['imported_pages'][$cell_id]
+                ) {
+                    $links_replace['="slickplan:' . $cell_id . '"'] = '="'
+                        . htmlspecialchars($this->options['imported_pages'][$cell_id]) . '"';
+                } elseif ($force_parse) {
+                    $links_replace['="slickplan:' . $cell_id . '"'] = '="#"';
+                } else {
+                    $this->_has_unparsed_internal_links = true;
+                }
+            }
+            if (count($links_replace)) {
+                return strtr($content, $links_replace);
+            }
+        }
+        return false;
     }
 
     /**
