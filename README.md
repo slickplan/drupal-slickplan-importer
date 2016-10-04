@@ -12,4 +12,4 @@ When you are finished planning your website project, import your [Slickplan.com]
 
 ## Support
 
-Having trouble with plugin? Check out the documentation at [help.slickplan.com](http://help.slickplan.com/) or contact us directly via email [support@slickplan.com](mailto:support@slickplan.com).
+Having trouble with plugin? Check out the documentation at [help.slickplan.com](http://help.slickplan.com/) or contact us directly via email [help@slickplan.com](mailto:help@slickplan.com).
