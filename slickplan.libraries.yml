@@ -1,0 +1,12 @@
+awesome:
+  version: 1.10
+  css:
+    layout:
+      '//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css' : { type: external, minified: true}
+    theme:
+       '//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css' : { type: external, minified: true}
+ajaximporter:
+  js:
+    library/js/ajaximporter.js: {}
+  dependencies:
+    - core/jquery

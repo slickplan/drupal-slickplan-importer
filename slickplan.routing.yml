@@ -1,0 +1,35 @@
+slickplan.upload:
+  path: '/admin/config/content/slickplan/upload'
+  defaults:
+    _title: 'Slickplan Importer'
+    _form: '\Drupal\slickplan\Form\UploadForm'
+  requirements:
+    _permission: 'access content'
+slickplan.options:
+  path: '/admin/config/content/slickplan/options'
+  defaults:
+    _title: 'Slickplan Importer'
+    _form: '\Drupal\slickplan\Form\OptionsForm'
+  requirements:
+    _permission: 'access content'
+slickplan.ajax_importer:
+  path: '/admin/config/content/slickplan/ajax_importer'
+  defaults:
+    _title: 'Slickplan Importer'
+    _form: '\Drupal\slickplan\Form\AjaxImporterForm'
+  requirements:
+    _permission: 'access content'
+slickplan.ajax_post:
+  path: '/admin/config/content/slickplan/ajax_post'
+  defaults:
+    _title: 'Slickplan Importer'
+    _controller: '\Drupal\slickplan\Form\AjaxImporterForm::ajaxRequest'
+  requirements:
+    _permission: 'access content'
+slickplan.summary:
+  path: '/admin/config/content/slickplan/summary'
+  defaults:
+    _title: 'Slickplan Importer'
+    _form: '\Drupal\slickplan\Form\SummaryForm'
+  requirements:
+    _permission: 'access content'

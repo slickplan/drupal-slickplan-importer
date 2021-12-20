@@ -1,8 +1,0 @@
-name = "Slickplan Importer"
-description = "Quickly import your Slickplan project into your Drupal site."
-package = "Slickplan"
-version = "7.x-2.1.0"
-configure = admin/config/content/slickplan_importer
-core = 7.x
-dependencies[] = image
-dependencies[] = file

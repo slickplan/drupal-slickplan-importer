@@ -1,0 +1,12 @@
+name: 'Slickplan Importer'
+type: module
+description: 'Quickly import your Slickplan project into your Drupal site.'
+package: 'slickplan'
+version: 8.x
+core: 8.x
+depedencies:
+  - image
+  - file
+libraries:
+  - slickplan
+hidden: false

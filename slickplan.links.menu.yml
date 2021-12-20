@@ -1,0 +1,6 @@
+slickplan.importer:
+  title: 'Slickplan Importer'
+  description: 'Quickly import your Slickplan project into your Drupal site.'
+  parent: system.admin_config_content
+  menu_name: main
+  route_name: slickplan.upload

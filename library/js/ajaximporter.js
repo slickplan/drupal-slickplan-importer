@@ -1,13 +1,20 @@
 Drupal.behaviors.myModule = {
     attach: function() {
-        if (!window.SLICKPLAN_JSON || !window.SLICKPLAN_HTML) {
-            return;
+        var $ = jQuery;
+        var $form = $('#ajax-importer-forms');
+
+        var $slickplanJson = $form.find(':input[name="slickplan_json"]');
+        var $slickplanHtml = $form.find(':input[name="slickplan_html"]')
+
+        if (!$slickplanJson.length || !$slickplanHtml.length) {
+        	return;
         }
 
-        var $ = jQuery;
-        var $form = $('#slickplan-importer-ajax-importer-form');
+        var slickplanJson = $.parseJSON($slickplanJson.val());
+        var slickplanHtml = $slickplanHtml.val();
+
         var $summary = $form.find('.slickplan-summary');
-        var $progress = $form.find('#progress');
+        var $progress = $form.find('#slickplan-progress');
 
         var _pages = [];
         var _importIndex = 0;
@@ -36,19 +43,19 @@ Drupal.behaviors.myModule = {
         };
 
         var _importPage = function(page) {
-            var html = ('' + window.SLICKPLAN_HTML).replace('{title}', page.title);
+            var html = ('' + slickplanHtml).replace('{title}', page.title);
             var $element = $(html).appendTo($summary);
             var percent = Math.round((_importIndex / _pages.length) * 100);
             $progress
-                .find('.filled')
+                .find('.progress__bar')
                     .width(percent + '%')
                     .end()
-                .find('.percentage')
+                .find('.progress__percentage')
                     .text(percent + '%')
                     .end()
-                .find('.message')
+                .find('.progress__description')
                     .text(page.title + '...');
-            $.post(Drupal.settings.basePath + 'admin/config/content/slickplan_importer/ajax_importer/post', {
+            $.post(drupalSettings.path.baseUrl + 'admin/config/content/slickplan/ajax_post?ajax_form=1&_wrapper_format=drupal_ajax', {
                 slickplan: {
                     page: page.id,
                     parent: page.parent ? page.parent : '',
@@ -76,8 +83,8 @@ Drupal.behaviors.myModule = {
 
         var types = ['home', '1', 'util', 'foot'];
         for (var i = 0; i < types.length; ++i) {
-            if (window.SLICKPLAN_JSON[types[i]] && window.SLICKPLAN_JSON[types[i]].length) {
-                _generatePagesFlatArray(window.SLICKPLAN_JSON[types[i]]);
+            if (slickplanJson[types[i]] && slickplanJson[types[i]].length) {
+                _generatePagesFlatArray(slickplanJson[types[i]]);
             }
         }
 
@@ -87,4 +94,4 @@ Drupal.behaviors.myModule = {
             _importPage(_pages[_importIndex]);
         }
     }
-}
+};

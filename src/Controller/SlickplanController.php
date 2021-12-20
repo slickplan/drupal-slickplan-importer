@@ -1,120 +1,17 @@
-<?php defined('DRUPAL_ROOT') or exit('No direct script access');
+<?php
+namespace Drupal\slickplan\Controller;
 
-/**
- * Implements hook_menu().
- *
- * @return array
- */
-function slickplan_importer_menu()
+use Drupal;
+use Exception;
+use DOMDocument;
+use Drupal\file\Entity\File;
+use Drupal\node\Entity\Node;
+use Drupal\system\Entity\Menu;
+use Drupal\menu_link_content\Entity\MenuLinkContent;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+
+class SlickplanController
 {
-    $path = drupal_get_path('module', 'slickplan_importer') . '/includes';
-
-    return array(
-        'admin/config/content/slickplan_importer' => array(
-            'title' => 'Slickplan Importer',
-            'description' => 'Quickly import your Slickplan project into your Drupal site.',
-            'access arguments' => array(
-                'administer slickplan_importer',
-            ),
-            'file path' => $path,
-            'page callback' => 'drupal_get_form',
-            'file' => 'upload.inc',
-            'page arguments' => array(
-                'slickplan_importer_upload_form',
-            ),
-        ),
-        'admin/config/content/slickplan_importer/options' => array(
-            'title' => 'Slickplan Importer',
-            'access arguments' => array(
-                'administer slickplan_importer',
-            ),
-            'file path' => $path,
-            'page callback' => 'drupal_get_form',
-            'file' => 'options.inc',
-            'type' => MENU_CALLBACK,
-            'page arguments' => array(
-                'slickplan_importer_options_form',
-            ),
-        ),
-        'admin/config/content/slickplan_importer/ajax_importer' => array(
-            'title' => 'Slickplan Importer',
-            'access arguments' => array(
-                'administer slickplan_importer',
-            ),
-            'file path' => $path,
-            'page callback' => 'drupal_get_form',
-            'file' => 'ajax_importer.inc',
-            'type' => MENU_CALLBACK,
-            'page arguments' => array(
-                'slickplan_importer_ajax_importer_form',
-            ),
-        ),
-        'admin/config/content/slickplan_importer/ajax_importer/post' => array(
-            'title' => 'Slickplan Importer',
-            'access arguments' => array(
-                'administer slickplan_importer',
-            ),
-            'file path' => $path,
-            'page callback' => 'slickplan_importer_ajax_importer_post',
-            'file' => 'ajax_importer.inc',
-            'type' => MENU_CALLBACK,
-            'page arguments' => array(2),
-        ),
-        'admin/config/content/slickplan_importer/summary' => array(
-            'title' => 'Slickplan Importer',
-            'access arguments' => array(
-                'administer slickplan_importer',
-            ),
-            'file path' => $path,
-            'page callback' => 'drupal_get_form',
-            'file' => 'summary.inc',
-            'type' => MENU_CALLBACK,
-            'page arguments' => array(
-                'slickplan_importer_summary_form',
-            ),
-        ),
-    );
-}
-
-/**
- * Implements hook_permission().
- *
- * @return array
- */
-function slickplan_importer_permission()
-{
-    return array(
-        'administer slickplan_importer' => array(
-            'title' => 'Administer Slickplan Importer',
-            'description' => 'Quickly import your Slickplan project into your Drupal site.',
-            'restrict access' => true,
-        ),
-    );
-}
-
-/**
- * Check if required data exists, if not redirect to upload form.
- *
- * @param $xml
- * @param string $page
- */
-function _slickplan_check_required_data($xml, $page = '')
-{
-    if (
-        ($page === 'options' and !isset($xml['sitemap']))
-        or ($page === 'summary' and !isset($xml['summary']))
-        or ($page === 'ajax_importer' and (!isset($xml['sitemap']) or isset($xml['summary'])))
-    ) {
-        drupal_goto('admin/config/content/slickplan_importer');
-    }
-}
-
-/**
- * Class Slickplan_Importer
- */
-class Slickplan_Importer
-{
-
     /**
      * Import options
      *
@@ -127,7 +24,7 @@ class Slickplan_Importer
         'content_files' => false,
         'users' => array(),
         'internal_links' => array(),
-        'imported_pages' => array(),
+        'imported_pages' => array()
     );
 
     /**
@@ -152,7 +49,8 @@ class Slickplan_Importer
     private $_has_unparsed_internal_links = false;
 
     /**
-     * Parse Slickplan's XML file. Converts an XML DOMDocument to an array.
+     * Parse Slickplan's XML file.
+     * Converts an XML DOMDocument to an array.
      *
      * @param $input_xml
      * @return array
@@ -173,7 +71,9 @@ class Slickplan_Importer
                         unset($array['diagram']);
                     }
                     if (isset($array['section']['options'])) {
-                        $array['section'] = array($array['section']);
+                        $array['section'] = array(
+                            $array['section']
+                        );
                     }
                     $array['sitemap'] = $this->_getMultidimensionalArrayHelper($array);
                     $array['users'] = array();
@@ -188,12 +88,8 @@ class Slickplan_Importer
                                 ) {
                                     unset($array['section'][$section_key]['cells']['cell'][$cell_key]);
                                 }
-                                if (isset(
-                                    $cell['contents']['assignee']['@value'],
-                                    $cell['contents']['assignee']['@attributes']
-                                )) {
-                                    $array['users'][$cell['contents']['assignee']['@value']]
-                                        = $cell['contents']['assignee']['@attributes'];
+                                if (isset($cell['contents']['assignee']['@value'], $cell['contents']['assignee']['@attributes'])) {
+                                    $array['users'][$cell['contents']['assignee']['@value']] = $cell['contents']['assignee']['@attributes'];
                                 }
                                 if (isset($cell['@attributes']['id'])) {
                                     $array['pages'][$cell['@attributes']['id']] = $cell;
@@ -221,19 +117,25 @@ class Slickplan_Importer
         if (!$this->options['content_files']) {
             return false;
         }
-        $file = file_get_contents($url);
+
         if (!isset($attrs['file_name']) or !$attrs['file_name']) {
-            $url = parse_url($url);
-            $attrs['file_name'] = basename($url['path']);
+            $fileUrl = parse_url($url);
+            $attrs['file_name'] = basename($fileUrl['path']);
         }
+
         $result = array(
-            'filename' => $attrs['file_name'],
+            'filename' => $attrs['file_name']
         );
+
         try {
-            if ($file) {
-                $file = file_save_data($file, 'public://' . $attrs['file_name'], FILE_EXISTS_RENAME);
-                if ($file and isset($file->uri)) {
-                    $url = file_create_url($file->uri);
+            $response = Drupal::httpClient()->get($url);
+            $fileData = (string) $response->getBody();
+            if ($fileData) {
+                $directory = 'public://slickplan/';
+                file_prepare_directory($directory, FILE_CREATE_DIRECTORY);
+                $localFile = file_save_data($fileData, $directory . $result['filename']);
+                if ($localFile and $localFile->getFileUri() and $localFile->getFileUri() != null) {
+                    $url = file_create_url($localFile->getFileUri());
                     if ($url) {
                         $result['url'] = $url;
                         $this->_files[] = $result;
@@ -263,12 +165,7 @@ class Slickplan_Importer
         foreach ($structure as $page) {
             if (isset($page['id'], $pages[$page['id']])) {
                 $result = $this->importPage($pages[$page['id']], $parent_id);
-                if (
-                    isset($page['childs'], $result['mlid'])
-                    and $result['mlid']
-                    and is_array($page['childs'])
-                    and count($page['childs'])
-                ) {
+                if (isset($page['childs'], $result['mlid']) and $result['mlid'] and is_array($page['childs']) and count($page['childs'])) {
                     $this->importPages($page['childs'], $pages, $result['mlid']);
                 }
             }
@@ -280,101 +177,92 @@ class Slickplan_Importer
      *
      * @param array $data
      * @param int $parent_id
+     * @return array
      */
     public function importPage(array $data, $parent_id = 0)
     {
-        global $user;
-
         $this->_files = array();
-
-        $node = new stdClass();
-        $node->type = $this->options['post_type'];
-        node_object_prepare($node);
 
         $post_title = $this->_getFormattedTitle($data);
 
-        $node->title = $post_title;
-        $node->language = LANGUAGE_NONE;
-
-        // Set url slug
-        if (isset($data['contents']['url_slug']) and $data['contents']['url_slug']) {
-            $node->path = array(
-                'alias' => $data['contents']['url_slug'],
-            );
-        }
+        $node = Node::create([
+            'type' => $this->options['post_type'],
+            'title' => $post_title
+        ]);
 
         // Set post author
-        if (isset(
-            $data['contents']['assignee']['@value'],
-            $this->options['users'][$data['contents']['assignee']['@value']]
-        )) {
-            $node->uid = $this->options['users'][$data['contents']['assignee']['@value']];
+        if (isset($data['contents']['assignee']['@value'], $this->options['users'][$data['contents']['assignee']['@value']])) {
+            $node->set('uid', $this->options['users'][$data['contents']['assignee']['@value']]);
         } else {
-            $node->uid = $user->uid;
+            $node->set('uid', Drupal::currentUser()->id());
         }
 
         // Set post status
         if (isset($data['contents']['status']) and $data['contents']['status'] === 'draft') {
-            $node->status = 0;
+            $node->set('status', 0);
         }
+
+        $article_value = null;
+
+        $this->_has_unparsed_internal_links = false;
 
         // Set post content
         if ($this->options['content'] === 'desc') {
             if (isset($data['desc']) and !empty($data['desc'])) {
-                $node->body[$node->language][0]['value'] = $data['desc'];
-                $node->body[$node->language][0]['summary'] = $data['desc'];
-                $node->body[$node->language][0]['format'] = 'full_html';
+                $this->_parseInternalLinks($data['desc']);
+                $node->set('body', array(
+                    'summary' => '',
+                    'value' => $data['desc'],
+                    'format' => 'full_html'
+                ));
             }
         } elseif ($this->options['content'] === 'contents') {
-            if (
-                isset($data['contents']['body'])
-                and is_array($data['contents']['body'])
-                and count($data['contents']['body'])
-            ) {
-                $node->body[$node->language][0]['value'] = $this->_getFormattedContent($data['contents']['body']);
-                $node->body[$node->language][0]['summary'] = $node->body[$node->language][0]['value'];
-                $node->body[$node->language][0]['format'] = 'full_html';
-                foreach ($data['contents']['body'] as $type => $element) {
-                    if ($type === 'wysiwyg' or $type === 'text') {
-                        $node->body[$node->language][0]['summary'] = $element['content'];
-                        break;
-                    }
-                }
+            if (isset($data['contents']['body']) and is_array($data['contents']['body']) and count($data['contents']['body'])) {
+                $article_value = $this->_getFormattedContent($data['contents']['body']);
+                $this->_parseInternalLinks($article_value);
+                $node->set('body', array(
+                    'summary' => '',
+                    'value' => $article_value,
+                    'format' => 'full_html'
+                ));
             }
         }
 
-        $this->_has_unparsed_internal_links = false;
-        if (isset($node->body[$node->language][0]['value']) and $node->body[$node->language][0]['value']) {
-            $updated_content = $this->_parseInternalLinks($node->body[$node->language][0]['value']);
-            if ($updated_content) {
-                $node->body[$node->language][0]['value']
-                    = $node->body[$node->language][0]['summary']
-                    = $updated_content;
-            }
-        }
-
-        $node = node_submit($node);
+        $node->set('uid', Drupal::currentUser()->id());
 
         try {
-            node_save($node);
+            $node->save();
 
-            $menu = array(
+            $url = $node->url();
+
+            if (isset($data['contents']['url_slug']) and $data['contents']['url_slug']) {
+                $slug = str_replace('%page_name%', $post_title, $data['contents']['url_slug']);
+                $slug = str_replace('%separator%', '-', $slug);
+                $slug = str_replace(' ', '', $slug);
+                $url = '/' . ltrim($slug, '/');
+                Drupal::service('path.alias_storage')->save($node->url(), $url, Drupal::languageManager()->getCurrentLanguage()
+                    ->getId());
+            }
+
+            $menu = MenuLinkContent::create([
                 'menu_name' => 'slickplan-importer',
-                'link_title' => $post_title,
-                'link_path' => drupal_get_normal_path('node/' . $node->nid),
-                'plid' => (int)$parent_id,
+                'title' => $post_title,
+                'link' => [
+                    'uri' => 'internal:' . $url
+                ],
+                'parent' => $parent_id,
                 'module' => 'menu',
                 'customized' => true,
-                'options' => array(),
-            );
-            $link = menu_link_save($menu);
+                'options' => array()
+            ]);
+            $menu->save();
 
             $return = array(
-                'ID' => $node->nid,
+                'ID' => $node->id(),
                 'title' => $post_title,
-                'url' => drupal_get_normal_path('node/' . $node->nid),
-                'mlid' => $link,
-                'files' => $this->_files,
+                'url' => $url,
+                'mlid' => $menu->getPluginId(),
+                'files' => $this->_files
             );
 
             // Save page permalink
@@ -388,7 +276,7 @@ class Slickplan_Importer
         } catch (Exception $e) {
             $return = array(
                 'title' => $post_title,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage()
             );
         }
         $this->summary[] = $return;
@@ -401,38 +289,45 @@ class Slickplan_Importer
     public function addMenu()
     {
         $menu = array(
+            'id' => 'slickplan-importer',
             'menu_name' => 'slickplan-importer',
-            'title' => 'Slickplan Importer',
-            'description' => 'Slickplan Importer - imported pages structure',
+            'label' => 'Slickplan Importer',
+            'description' => 'Slickplan Importer - imported pages structure'
         );
-        $existing_menu = menu_load($menu['menu_name']);
-        if ($existing_menu) {
-            $links = menu_load_links($menu['menu_name']);
-            foreach ($links as $link) {
-                menu_link_delete($link['mlid']);
-            }
+
+        $menu_array = Menu::loadMultiple();
+
+        if (isset($menu_array[$menu['id']])) {
+            Drupal::service('plugin.manager.menu.link')->deleteLinksInMenu($menu['id']);
         } else {
-            menu_save($menu);
+            Menu::create($menu)->save();
         }
 
-        if (menu_load($menu['menu_name'])) {
-            $available_menus = variable_get('menu_options_' . $this->options['post_type'], array(
-                'main-menu' => 'main-menu',
+        if (isset($menu_array[$menu['id']])) {
+            $available_menus = Drupal::state()->get('menu_options_' . $this->options['post_type'], array(
+                'main-menu' => 'main-menu'
             ));
             if (!isset($available_menus['slickplan-importer'])) {
                 $available_menus['slickplan-importer'] = 'slickplan-importer';
-                variable_set('menu_options_' . $this->options['post_type'], $available_menus);
+                Drupal::state()->set('menu_options_' . $this->options['post_type'], $available_menus);
+                Drupal::state()->resetCache();
             }
+
             return $menu['menu_name'];
+        } else {
+            $menu = false;
         }
-        return false;
+
+        $cache = Drupal::cache('menu');
+        $cache->deleteAll();
+
+        return $menu;
     }
 
     /**
      * Get HTML of a summary row
      *
      * @param array $page
-     * @param null $id
      * @return string
      */
     public function getSummaryRow(array $page)
@@ -442,7 +337,7 @@ class Slickplan_Importer
             $html .= '<span style="color: #e00"><i class="fa fa-fw fa-times"></i> ' . $page['error'] . '</span>';
         } elseif (isset($page['url'])) {
             $html .= '<i class="fa fa-fw fa-check" style="color: #0d0"></i> '
-                . '<a href="' . url($page['url']) . '">' . url($page['url']) . '</a>';
+                . '<a href="' . htmlspecialchars($page['url']) . '">' . $page['url'] . '</a>';
         } elseif (isset($page['loading']) and $page['loading']) {
             $html .= '<i class="fa fa-fw fa-refresh fa-spin"></i>';
         }
@@ -450,8 +345,8 @@ class Slickplan_Importer
             $files = array();
             foreach ($page['files'] as $file) {
                 if (isset($file['url']) and $file['url']) {
-                    $files[] = '<i class="fa fa-fw fa-check" style="color: #0d0"></i> <a href="'
-                        . $file['url'] . '" target="_blank">' . $file['filename'] . '</a>';
+                    $files[] = '<i class="fa fa-fw fa-check" style="color: #0d0"></i> <a href="' . $file['url'] . '" target="_blank">'
+                        . $file['filename'] . '</a>';
                 } elseif (isset($file['error']) and $file['error']) {
                     $files[] = '<span style="color: #e00"><i class="fa fa-fw fa-times"></i> '
                         . $file['filename'] . ' - ' . $file['error'] . '</span>';
@@ -471,14 +366,16 @@ class Slickplan_Importer
     {
         if (isset($this->options['internal_links']) and is_array($this->options['internal_links'])) {
             foreach ($this->options['internal_links'] as $page_id) {
-                $page = node_load($page_id);
-                if (isset($page->body[$page->language][0]['value'])) {
-                    $page_content = $this->_parseInternalLinks($page->body[$page->language][0]['value'], true);
+                $page = Node::load($page_id);
+                $body = $page->get('body')->getValue();
+                if (isset($body[0]['value'])) {
+                    $page_content = $this->_parseInternalLinks($body[0]['value'], true);
                     if ($page_content) {
-                        $page->body[$page->language][0]['value']
-                            = $page->body[$page->language][0]['summary']
-                            = $page_content;
-                        node_save($page);
+                        $page->set('body', array(
+                            'summary' => '',
+                            'value' => $page_content,
+                            'format' => 'full_html'
+                        ))->save();
                     }
                 }
             }
@@ -499,12 +396,8 @@ class Slickplan_Importer
             $internal_links = array_unique($internal_links[1]);
             $links_replace = array();
             foreach ($internal_links as $cell_id) {
-                if (
-                    isset($this->options['imported_pages'][$cell_id])
-                    and $this->options['imported_pages'][$cell_id]
-                ) {
-                    $links_replace['="slickplan:' . $cell_id . '"'] = '="'
-                        . htmlspecialchars($this->options['imported_pages'][$cell_id]) . '"';
+                if (isset($this->options['imported_pages'][$cell_id]) and $this->options['imported_pages'][$cell_id]) {
+                    $links_replace['="slickplan:' . $cell_id . '"'] = '="' . htmlspecialchars($this->options['imported_pages'][$cell_id]) . '"';
                 } elseif ($force_parse) {
                     $links_replace['="slickplan:' . $cell_id . '"'] = '="#"';
                 } else {
@@ -521,14 +414,17 @@ class Slickplan_Importer
     /**
      * Get formatted HTML content.
      *
-     * @param array $content
+     * @param array $contents
+     * @return string
      */
     protected function _getFormattedContent(array $contents)
     {
         $post_content = array();
         foreach ($contents as $type => $content) {
             if (isset($content['content'])) {
-                $content = array($content);
+                $content = array(
+                    $content
+                );
             }
             foreach ($content as $element) {
                 if (!isset($element['content'])) {
@@ -543,54 +439,46 @@ class Slickplan_Importer
                         $html .= htmlspecialchars($element['content']);
                         break;
                     case 'image':
-                        if (isset($element['content']['type'], $element['content']['url'])) {
-                            $attrs = array(
-                                'alt' => isset($element['content']['alt'])
-                                    ? $element['content']['alt']
-                                    : '',
-                                'title' => isset($element['content']['title'])
-                                    ? $element['content']['title']
-                                    : '',
-                                'file_name' => isset($element['content']['file_name'])
-                                    ? $element['content']['file_name']
-                                    : '',
-                            );
-                            if ($element['content']['type'] === 'library') {
-                                $src = $this->addMedia($element['content']['url'], $attrs);
-                            } else {
-                                $src = $element['content']['url'];
-                            }
-                            if ($src and is_string($src)) {
-                                $html .= '<img src="' . htmlspecialchars($src)
-                                    . '" alt="' . htmlspecialchars($attrs['alt'])
-                                    . '" title="' . htmlspecialchars($attrs['title']) . '" />';
+                        foreach ($this->_getMediaElementArray($element) as $item) {
+                            if (isset($item['type'], $item['url'])) {
+                                $attrs = array(
+                                    'alt' => isset($item['alt']) ? $item['alt'] : '',
+                                    'title' => isset($item['title']) ? $item['title'] : '',
+                                    'file_name' => isset($item['file_name']) ? $item['file_name'] : ''
+                                );
+                                if ($item['type'] === 'library') {
+                                    $src = $this->addMedia($item['url'], $attrs);
+                                } else {
+                                    $src = $item['url'];
+                                }
+                                if ($src and is_string($src)) {
+                                    $html .= '<img src="' . htmlspecialchars($src)
+                                        . '" alt="' . htmlspecialchars($attrs['alt'])
+                                        . '" title="' . htmlspecialchars($attrs['title']) . '" />';
+                                }
                             }
                         }
                         break;
                     case 'video':
                     case 'file':
-                        if (isset($element['content']['type'], $element['content']['url'])) {
-                            $attrs = array(
-                                'description' => isset($element['content']['description'])
-                                    ? $element['content']['description']
-                                    : '',
-                                'file_name' => isset($element['content']['file_name'])
-                                    ? $element['content']['file_name']
-                                    : '',
-                            );
-                            if ($element['content']['type'] === 'library') {
-                                $src = $this->addMedia($element['content']['url'], $attrs);
-                                $name = basename($src);
-                            } else {
-                                $src = $element['content']['url'];
-                                $name = $src;
-                            }
-                            if ($src and is_string($src)) {
-                                $name = $attrs['description']
-                                    ? $attrs['description']
-                                    : ($attrs['file_name'] ? $attrs['file_name'] : $name);
-                                $html .= '<a href="' . htmlspecialchars($src) . '" title="'
-                                    . htmlspecialchars($attrs['description']) . '">' . $name . '</a>';
+                        foreach ($this->_getMediaElementArray($element) as $item) {
+                            if (isset($item['type'], $item['url'])) {
+                                $attrs = array(
+                                    'description' => isset($item['description']) ? $item['description'] : '',
+                                    'file_name' => isset($item['file_name']) ? $item['file_name'] : ''
+                                );
+                                if ($item['type'] === 'library') {
+                                    $src = $this->addMedia($item['url'], $attrs);
+                                    $name = basename($src);
+                                } else {
+                                    $src = $item['url'];
+                                    $name = $src;
+                                }
+                                if ($src and is_string($src)) {
+                                    $name = $attrs['description'] ? $attrs['description'] : ($attrs['file_name'] ? $attrs['file_name'] : $name);
+                                    $html .= '<a href="' . htmlspecialchars($src)
+                                        . '" title="' . htmlspecialchars($attrs['description']) . '">' . $name . '</a>';
+                                }
                             }
                         }
                         break;
@@ -617,8 +505,7 @@ class Slickplan_Importer
                     $prepend = '';
                     $append = '';
                     if (isset($element['options']['tag']) and $element['options']['tag']) {
-                        $element['options']['tag'] = preg_replace('/[^a-z]+/', '',
-                            strtolower($element['options']['tag']));
+                        $element['options']['tag'] = preg_replace('/[^a-z]+/', '', strtolower($element['options']['tag']));
                         if ($element['options']['tag']) {
                             $prepend = '<' . $element['options']['tag'];
                             if (isset($element['options']['tag_id']) and $element['options']['tag_id']) {
@@ -671,7 +558,7 @@ class Slickplan_Importer
     /**
      * Parse single node XML element.
      *
-     * @param DOMElement $node
+     * @param \DOMElement $node
      * @return array|string
      */
     protected function _parseSlickplanXmlNode($node)
@@ -681,7 +568,7 @@ class Slickplan_Importer
                 return trim($node->textContent);
             } elseif ($node->nodeType === XML_ELEMENT_NODE) {
                 $output = array();
-                for ($i = 0, $j = $node->childNodes->length; $i < $j; ++$i) {
+                for ($i = 0, $j = $node->childNodes->length; $i < $j; ++ $i) {
                     $child_node = $node->childNodes->item($i);
                     $value = $this->_parseSlickplanXmlNode($child_node);
                     if (isset($child_node->tagName)) {
@@ -708,11 +595,11 @@ class Slickplan_Importer
                 if ($node->attributes->length) {
                     $attributes = array();
                     foreach ($node->attributes as $attr_name => $attr_node) {
-                        $attributes[$attr_name] = (string)$attr_node->value;
+                        $attributes[$attr_name] = (string) $attr_node->value;
                     }
                     if (!is_array($output)) {
                         $output = array(
-                            '@value' => $output,
+                            '@value' => $output
                         );
                     }
                     $output['@attributes'] = $attributes;
@@ -736,7 +623,8 @@ class Slickplan_Importer
             $array
             and is_array($array)
             and isset($array['title'], $array['version'], $array['link'])
-            and is_string($array['link']) and strstr($array['link'], 'slickplan.')
+            and is_string($array['link'])
+            and strstr($array['link'], '.slickplan')
         );
         if ($first_test) {
             if ($parsed) {
@@ -744,8 +632,8 @@ class Slickplan_Importer
                     return true;
                 }
             } elseif (
-                isset($array['section']['options']['id'], $array['section']['cells'])
-                or isset($array['section'][0]['options']['id'], $array['section'][0]['cells'])
+                isset($array['section']['options'], $array['section']['cells'])
+                or isset($array['section'][0]['options'], $array['section'][0]['cells'])
             ) {
                 return true;
             }
@@ -762,13 +650,10 @@ class Slickplan_Importer
     protected function _getMultidimensionalArrayHelper(array $array)
     {
         $cells = array();
-        $main_section_key = -1;
+        $main_section_key = - 1;
         $relation_section_cell = array();
         foreach ($array['section'] as $section_key => $section) {
-            if (
-                isset($section['@attributes']['id'], $section['cells']['cell'])
-                and is_array($section['cells']['cell'])
-            ) {
+            if (isset($section['@attributes']['id'], $section['cells']['cell']) and is_array($section['cells']['cell'])) {
                 foreach ($section['cells']['cell'] as $cell_key => $cell) {
                     if (isset($cell['@attributes']['id'])) {
                         $cell_id = $cell['@attributes']['id'];
@@ -788,12 +673,11 @@ class Slickplan_Importer
             if ($section_id !== 'svgmainsection') {
                 $remove = true;
                 foreach ($section['cells']['cell'] as $cell_key => $cell) {
-                    $cell['level'] = (string)$cell['level'];
+                    $cell['level'] = (string) $cell['level'];
                     if ($cell['level'] === 'home') {
                         unset($array['section'][$section_key]['cells']['cell'][$cell_key]);
                     } elseif ($cell['level'] === '1' and isset($relation_section_cell[$section_id])) {
-                        $array['section'][$section_key]['cells']['cell'][$cell_key]['parent']
-                            = $relation_section_cell[$section_id];
+                        $array['section'][$section_key]['cells']['cell'][$cell_key]['parent'] = $relation_section_cell[$section_id];
                         $remove = false;
                         $array['section'][$section_key]['cells']['cell'][$cell_key]['order'] *= 10;
                     }
@@ -813,7 +697,10 @@ class Slickplan_Importer
             foreach ($section['cells']['cell'] as $cell_key => $cell) {
                 $section_cells[] = $cell;
             }
-            usort($section_cells, array($this, '_sortPages'));
+            usort($section_cells, array(
+                $this,
+                '_sortPages'
+            ));
             $array['section'][$section_key]['cells']['cell'] = $section_cells;
             $cells = array_merge($cells, $section_cells);
             unset($section_cells);
@@ -821,9 +708,13 @@ class Slickplan_Importer
         $multi_array = array();
         if (isset($array['section'][$main_section_key]['cells']['cell'])) {
             foreach ($array['section'][$main_section_key]['cells']['cell'] as $cell) {
-                if (isset($cell['@attributes']['id']) and (
-                        $cell['level'] === 'home' or $cell['level'] === 'util' or $cell['level'] === 'foot'
-                        or $cell['level'] === '1' or $cell['level'] === 1
+                if (
+                    isset($cell['@attributes']['id'])
+                    and (
+                        $cell['level'] === 'home'
+                        or $cell['level'] === 'util'
+                        or $cell['level'] === 'foot'
+                        or strval($cell['level']) === '1'
                     )
                 ) {
                     $level = $cell['level'];
@@ -833,7 +724,7 @@ class Slickplan_Importer
                     $childs = $this->_getMultidimensionalArray($cells, $cell['@attributes']['id']);
                     $cell = array(
                         'id' => $cell['@attributes']['id'],
-                        'title' => $this->_getFormattedTitle($cell),
+                        'title' => $this->_getFormattedTitle($cell)
                     );
                     if ($childs) {
                         $cell['childs'] = $childs;
@@ -851,7 +742,6 @@ class Slickplan_Importer
      *
      * @param array $array
      * @param $parent
-     * @param $summary
      * @return array
      */
     protected function _getMultidimensionalArray(array $array, $parent)
@@ -862,7 +752,7 @@ class Slickplan_Importer
                 $childs = $this->_getMultidimensionalArray($array, $cell['@attributes']['id']);
                 $cell = array(
                     'id' => $cell['@attributes']['id'],
-                    'title' => $this->_getFormattedTitle($cell),
+                    'title' => $this->_getFormattedTitle($cell)
                 );
                 if ($childs) {
                     $cell['childs'] = $childs;
@@ -883,9 +773,21 @@ class Slickplan_Importer
     protected function _sortPages(array &$a, array &$b)
     {
         if (isset($a['order'], $b['order'])) {
-            return ($a['order'] < $b['order']) ? -1 : 1;
+            return ($a['order'] < $b['order']) ? - 1 : 1;
         }
         return 0;
     }
 
+    /**
+     * @param array $element
+     * @return array
+     */
+    protected function _getMediaElementArray(array $element): array
+    {
+        $items = $element['content']['contentelement'] ?? $element['content'];
+        return isset($items['type'])
+            ? [$items]
+            : (isset($items[0]['type']) ? $items : []);
+    }
 }
+
