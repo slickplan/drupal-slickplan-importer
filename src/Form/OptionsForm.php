@@ -92,11 +92,13 @@ class OptionsForm extends FormBase
             foreach ($xml['pages'] as $page) {
                 if (isset($page['contents']['body']) and is_array($page['contents']['body'])) {
                     foreach ($page['contents']['body'] as $body) {
-                        if (isset($body['content']['type']) and $body['content']['type'] === 'library') {
-                            ++$no_of_files;
-                        }
-                        if (isset($body['content']['file_size'], $body['content']['file_id']) and $body['content']['file_size']) {
-                            $filesize_total[$body['content']['file_id']] = (int)$body['content']['file_size'];
+                        foreach ($this->_getMediaElementArray($body) as $item) {
+                            if (isset($item['type']) and $item['type'] === 'library') {
+                                ++$no_of_files;
+                            }
+                            if (isset($item['file_size'], $item['file_id']) and $item['file_size']) {
+                                $filesize_total[$item['file_id']] = (int)$item['file_size'];
+                            }
                         }
                     }
                 }
@@ -261,6 +263,16 @@ class OptionsForm extends FormBase
             $form_state->setRedirect('slickplan.summary');
         }
     }
+
+    /**
+     * @param array $element
+     * @return array
+     */
+    protected function _getMediaElementArray(array $element): array
+    {
+        $items = $element['content']['contentelement'] ?? $element['content'];
+        return isset($items['type'])
+            ? [$items]
+            : (isset($items[0]['type']) ? $items : []);
+    }
 }
-
-
