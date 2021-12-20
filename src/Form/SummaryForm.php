@@ -32,7 +32,7 @@ class SummaryForm extends FormBase
 
         $form['message'] = array(
             '#markup' => '<p>Pages have been imported. Thank you for using '
-                . '<a href="http://slickplan.com/" target="_blank">Slickplan</a> Importer.</p>'
+                . '<a href="https://slickplan.com/" target="_blank">Slickplan</a> Importer.</p>'
         );
 
         if (isset($xml['summary']) and is_array($xml['summary'])) {

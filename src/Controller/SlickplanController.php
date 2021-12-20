@@ -4,11 +4,11 @@ namespace Drupal\slickplan\Controller;
 use Drupal;
 use Exception;
 use DOMDocument;
-use Drupal\file\Entity\File;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\node\Entity\Node;
+use Drupal\path_alias\Entity\PathAlias;
 use Drupal\system\Entity\Menu;
 use Drupal\menu_link_content\Entity\MenuLinkContent;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class SlickplanController
 {
@@ -132,7 +132,8 @@ class SlickplanController
             $fileData = (string) $response->getBody();
             if ($fileData) {
                 $directory = 'public://slickplan/';
-                file_prepare_directory($directory, FILE_CREATE_DIRECTORY);
+                $fs = Drupal::service('file_system');
+                $fs->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY);
                 $localFile = file_save_data($fileData, $directory . $result['filename']);
                 if ($localFile and $localFile->getFileUri() and $localFile->getFileUri() != null) {
                     $url = file_create_url($localFile->getFileUri());
@@ -230,18 +231,26 @@ class SlickplanController
 
         $node->set('uid', Drupal::currentUser()->id());
 
+        $pathService = version_compare(Drupal::VERSION, '9.0.0', '>=')
+            ? 'path_alias.manager'
+            : 'path.alias_manager';
+
         try {
             $node->save();
 
-            $url = $node->url();
+            $alias = Drupal::service($pathService)->getAliasByPath('/node/' . $node->id());
+            $url = $alias;
 
             if (isset($data['contents']['url_slug']) and $data['contents']['url_slug']) {
                 $slug = str_replace('%page_name%', $post_title, $data['contents']['url_slug']);
                 $slug = str_replace('%separator%', '-', $slug);
                 $slug = str_replace(' ', '', $slug);
                 $url = '/' . ltrim($slug, '/');
-                Drupal::service('path.alias_storage')->save($node->url(), $url, Drupal::languageManager()->getCurrentLanguage()
-                    ->getId());
+                $pathAlias = PathAlias::create([
+                    'path' => '/node/' . $node->id(),
+                    'alias' => $url,
+                ]);
+                $pathAlias->save();
             }
 
             $menu = MenuLinkContent::create([

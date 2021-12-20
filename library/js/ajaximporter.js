@@ -1,5 +1,12 @@
+let SlickplanInitialized = false;
+
 Drupal.behaviors.myModule = {
     attach: function() {
+        if (SlickplanInitialized) {
+            return;
+        }
+
+        SlickplanInitialized = true;
         var $ = jQuery;
         var $form = $('#ajax-importer-forms');
 

@@ -3,6 +3,8 @@ namespace Drupal\slickplan\Form;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\FormBase as DrupalFormBase;
+use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 abstract class FormBase extends DrupalFormBase
 {
@@ -29,7 +31,7 @@ abstract class FormBase extends DrupalFormBase
             or ($page === 'summary' and !isset($xml['summary']))
             or ($page === 'ajax_importer' and (!isset($xml['sitemap']) or isset($xml['summary'])))
         ) {
-            return new RedirectResponse(Drupal::url('slickplan.upload'));
+            return new RedirectResponse(Url::fromRoute('slickplan.upload')->toString());
         }
     }
 }

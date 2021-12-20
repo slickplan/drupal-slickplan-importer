@@ -4,6 +4,7 @@ description: 'Quickly import your Slickplan project into your Drupal site.'
 package: 'slickplan'
 version: 8.x
 core: 8.x
+core_version_requirement: ^8 || ^9
 depedencies:
   - image
   - file

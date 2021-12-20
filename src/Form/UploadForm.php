@@ -30,17 +30,17 @@ class UploadForm extends FormBase
                 'xml',
             ),
             'file_validate_size' => array(
-                file_upload_max_size(),
+                Drupal\Component\Utility\Environment::getUploadMaxSize()
             )
         );
 
         $form['slickplan'] = array(
             '#type' => 'managed_file',
-            '#upload_location' => 'public://upload/slickplan',
+            // '#upload_location' => 'public://upload/slickplan',
             '#title' => 'Slickplan Importer',
             '#required' => true,
             '#description' => '<p>The Slickplan Importer plugin allows you to quickly import your '
-                . '<a href="http://slickplan.com" target="_blank">Slickplan</a> projects into your Drupal site.</p>'
+                . '<a href="https://slickplan.com" target="_blank">Slickplan</a> projects into your Drupal site.</p>'
                 . '<p>Upon import, your pages, navigation structure, and content will be instantly ready in your CMS.</p>'
                 . '<p>Pick a XML file to upload and click Import.</p>',
             '#upload_validators' => $file_validator,
@@ -77,6 +77,7 @@ class UploadForm extends FormBase
 
                 $form_state->setRedirect('slickplan.options');
             } catch (Exception $ex) {
+              var_dump($ex);exit;
                 drupal_set_message($ex->getMessage(), 'error');
                 return false;
             }
