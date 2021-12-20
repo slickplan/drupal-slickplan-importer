@@ -1,4 +1,4 @@
-let SlickplanInitialized = false;
+var SlickplanInitialized = false;
 
 Drupal.behaviors.myModule = {
     attach: function() {
