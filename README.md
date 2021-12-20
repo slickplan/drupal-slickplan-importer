@@ -5,9 +5,9 @@
 
 ---
 
-# [Slickplan](https://slickplan.com) Importer - Drupal 8 Module
+# [Slickplan](https://slickplan.com) Importer - Drupal 9 Module
 
-The Slickplan import module allows you to quickly import your [Slickplan.com](https://slickplan.com) projects into your Drupal 8 site.
+The Slickplan import module allows you to quickly import your [Slickplan.com](https://slickplan.com) projects into your Drupal 9 site.
 
 When you are finished planning your website project, import your [Slickplan.com](https://slickplan.com) website plan. Upon import, your pages, navigation structure, and content will be instantly ready in your CMS.
 
