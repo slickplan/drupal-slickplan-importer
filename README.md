@@ -1,4 +1,4 @@
-### Please select the desired Drupal version:
+### Please select your Drupal version:
 - [Drupal 7](/slickplan/drupal-slickplan-importer/tree/drupal7) branch (current)
 - [Drupal 8](/slickplan/drupal-slickplan-importer/tree/drupal8) branch
 - [Drupal 9](/slickplan/drupal-slickplan-importer/tree/drupal9) branch
