@@ -1,8 +1,12 @@
+var SlickplanInitialized = false;
+
 Drupal.behaviors.myModule = {
     attach: function() {
-        if (!window.SLICKPLAN_JSON || !window.SLICKPLAN_HTML) {
+        if (SlickplanInitialized || !window.SLICKPLAN_JSON || !window.SLICKPLAN_HTML) {
             return;
         }
+
+        SlickplanInitialized = true;
 
         var $ = jQuery;
         var $form = $('#slickplan-importer-ajax-importer-form');

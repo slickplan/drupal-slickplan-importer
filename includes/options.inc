@@ -84,11 +84,13 @@ function slickplan_importer_options_form(array $form)
         foreach ($xml['pages'] as $page) {
             if (isset($page['contents']['body']) and is_array($page['contents']['body'])) {
                 foreach ($page['contents']['body'] as $body) {
-                    if (isset($body['content']['type']) and $body['content']['type'] === 'library') {
-                        ++$no_of_files;
-                    }
-                    if (isset($body['content']['file_size'], $body['content']['file_id']) and $body['content']['file_size']) {
-                        $filesize_total[$body['content']['file_id']] = (int)$body['content']['file_size'];
+                    foreach (slickplan_get_media_element_array($body) as $item) {
+                        if (isset($item['type']) and $item['type'] === 'library') {
+                            ++$no_of_files;
+                        }
+                        if (isset($item['file_size'], $item['file_id']) and $item['file_size']) {
+                            $filesize_total[$item['file_id']] = (int)$item['file_size'];
+                        }
                     }
                 }
             }
@@ -255,4 +257,12 @@ function slickplan_importer_options_form_submit(array $form, array &$form_data)
         variable_set('slickplan_importer', $xml);
         drupal_goto('admin/config/content/slickplan_importer/summary');
     }
+}
+
+function slickplan_get_media_element_array($element)
+{
+    $items = isset($element['content']['contentelement']) ? $element['content']['contentelement'] : $element['content'];
+    return isset($items['type'])
+        ? [$items]
+        : (isset($items[0]['type']) ? $items : []);
 }
